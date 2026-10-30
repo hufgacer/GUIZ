@@ -392,6 +392,11 @@ body:not(.menu):not(.full) main{flex:1;min-height:0}
 .srow .vv{width:3.2em;text-align:right;color:var(--mut);font-size:13px}
 .srow.col{flex-direction:column;align-items:stretch;border:0;gap:6px}.srow.col .typ{margin:0}
 #nkm{margin:2px 0 0;min-height:1.2em;font-size:13px;color:var(--mut)}
+.lg{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd);text-align:left}
+.lg img{width:38px;height:26px;object-fit:cover;border-radius:4px;border:1px solid var(--bd);flex:none}
+.lg .lgt{flex:1;min-width:0;line-height:1.25}.lg .lgt b{display:block;font-size:16px;color:var(--ok)}
+.lg .lgt small{display:block;color:var(--mut);font-size:12px}.lg .lgt small i{font-style:normal;color:var(--bad);font-weight:700}
+.lg .lgm{font-weight:800;font-size:18px;color:var(--ok)}.lg.b .lgm{color:var(--bad)}
 </style>
 </head>
 <body class="menu">
@@ -604,11 +609,14 @@ function finish(){
  clearInterval(tick);if(G.daily)return dcAfterQuiz();const n=G.q.length,acc=Math.round(G.ok/n*100),avg=(G.time/n).toFixed(1);
  const s=store(),k=G.m[0]+' · '+DIFFS[G.d].n+' · '+RL(G.rg),e=s[k]||{p:0,best:0,ok:0,n:0};e.p++;const pb=e.best;e.best=Math.max(e.best,G.score);e.ok+=G.ok;e.n+=n;s[k]=e;try{localStorage.guiz=JSON.stringify(s)}catch(x){}
  modal('Round complete',[[G.score,'Total score'],[acc+'%','Accuracy'],[avg+'s','Avg speed'],[G.best,'Best streak']],
-  G.log.map(l=>`<div class="row"><span>${l.ok?'✓':'✗'} ${l.c.n}</span><span style="color:var(--${l.ok?'ok':'bad'})">${l.ok?'Correct':l.right}</span></div>`).join(''),()=>start(G.mi,G.rg));
+  G.log.map(l=>lgRow(l,G.m[1],G.m[2])).join(''),()=>start(G.mi,G.rg));
  xpReward(G.score/10*XPM[G.d]);
  LB.rg=G.rg;if(G.score>0)lbOffer(G.m[0]+' · '+DIFFS[G.d].n,n,G.score);
  if(pb>0&&G.score>pb)hiScore(G.m[0],n,G.score,G.d);
 }
+function lgRow(l,from,to){const c=l.c,q=from==='capital'?'Capital: '+c.cap:from==='flag'?'Flag':from==='outline'?'Outline':c.n,
+ g=String(l.given||''),gv=/^⏱/.test(g)?'Time ran out':g==='another flag'?'a different flag':g;
+ return `<div class="lg ${l.ok?'g':'b'}"><img alt="" src="https://flagcdn.com/w80/${c.cc}.png"><div class="lgt"><b>${l.right}</b><small>${q}${l.ok?'':` · You said: <i>${gv}</i>`}</small></div><span class="lgm">${l.ok?'✓':'✗'}</span></div>`}
 function modal(title,st,rows,again){
  $('#mb').innerHTML=`<h2>${title}</h2><div class="stats">${st.map(x=>`<div><b>${x[0]}</b>${x[1]}</div>`).join('')}</div>${rows}
  <div style="display:flex;gap:8px;margin-top:16px"><button class="pri" id="ag">Play again</button><button class="sec" id="hm" data-snd="back">Home</button></div>`;
@@ -766,14 +774,14 @@ function dcNext(){
   show('game');next();
  }
 }
-function dcAfterQuiz(){const l=G.log[0],pts=Math.min(1000,G.score*5);DC.score+=pts;DC.streak=G.streak;DC.log.push({n:l.c.n,mode:G.m[0],ok:l.ok,pts});DC.i++;dcNext()}
+function dcAfterQuiz(){const l=G.log[0],pts=Math.min(1000,G.score*5);DC.score+=pts;DC.streak=G.streak;DC.log.push({n:l.c.n,mode:G.m[0],ok:l.ok,pts,c:l.c,given:l.given,right:l.right,from:G.m[1],to:G.m[2]});DC.i++;dcNext()}
 function dcAfterPin(){const l=B.log[0],pts=Math.round(B.score*1000/1500);DC.score+=pts;DC.log.push({n:l.n,mode:B.m[0],pts,d:l.d,pin:1});DC.i++;dcNext()}
 function dcFinish(){
  clearInterval(tick);const t=DC.score,qz=DC.log.filter(l=>!l.pin),okc=qz.filter(l=>l.ok).length,pins=DC.log.filter(l=>l.pin&&l.d!==null),avgD=pins.length?Math.round(pins.reduce((a,l)=>a+l.d,0)/pins.length):0;
  try{localStorage.guizDaily=JSON.stringify({d:DC.date,done:1,s:t})}catch(e){}
  const s=store(),e=s['Daily Challenge']||{p:0,best:0,ok:0,n:0};e.p++;e.best=Math.max(e.best,t);e.ok+=okc;e.n+=qz.length;s['Daily Challenge']=e;try{localStorage.guiz=JSON.stringify(s)}catch(x){}
  modal('📅 Daily challenge complete',[[t.toLocaleString(),'Score / 18,000'],[okc+'/'+qz.length,'Quiz correct'],[avgD.toLocaleString()+' km','Avg pin distance'],[DC.date,'Challenge date']],
-  DC.log.map(l=>`<div class="row"><span>${l.pin?'📍':l.ok?'✓':'✗'} ${l.n} <small style="color:var(--mut)">${dn(l.mode)}</small></span><span>${l.pts}</span></div>`).join(''),()=>{LB.m='daily';LB.dd=0;lbCard({from:'game'})});
+  DC.log.map(l=>!l.pin&&l.c?lgRow(l,l.from,l.to):`<div class="row"><span>${l.pin?'📍':l.ok?'✓':'✗'} ${l.n} <small style="color:var(--mut)">${dn(l.mode)}</small></span><span>${l.pts}</span></div>`).join(''),()=>{LB.m='daily';LB.dd=0;lbCard({from:'game'})});
  $('#ag').textContent='🏆 Leaderboard';
  xpReward(t/100+100);
  if(t>0)lbOffer('Daily Challenge · '+DC.date,18,t);
